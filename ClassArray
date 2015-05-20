@@ -1,0 +1,768 @@
+'====================================================================================================
+'       Instance for SSEP
+'
+'to create Class from another book
+'====================================================================================================
+
+'How to install :
+'Open a workbook, in VisualBasic, menu Outils/Tools, select Reference, and choose/browse this file 6sigmaExcelPack.xlam
+'Be care to choose .xlam format
+'His name will be "SSEP" to short call it (for SixSigmaExcelPack)
+'Be sure, SSEP is checked in Reference window
+
+'How to use :
+'Dim maVariable as SSEP.Classarray      'just to get autoCompletion
+'Set maVariable = SSEP.Classarray       'needed to create a "blank" object
+
+
+Public Function InstantiateClassArray() As ClassArray
+    Set InstantiateClassArray = New ClassArray
+End Function
+
+
+Option Explicit
+Private iMyArray() As Variant
+Private iLBound As Long
+Private iUBound As Long
+Private iCountRow As Long
+Private iCountColumn As Long
+Private iDimension As Integer
+'====================================================================================================
+'       Property
+'====================================================================================================
+'myArray (default value)
+Property Let myArray(anArray As Variant)
+    iMyArray = anArray
+    iDimension = 0
+End Property
+
+Property Get myArray() As Variant
+    myArray = iMyArray
+End Property
+
+Property Get getColumnDbl(Optional columnToConvert As Long = 0) As Double()
+Dim tempArray() As Double   'Conversion
+Dim i As Long, j As Long
+Dim nbDim As Integer
+nbDim = Me.dimension
+
+ReDim tempArray(LBound(iMyArray) To UBound(iMyArray))
+
+If nbDim = 1 Then
+    For i = LBound(iMyArray) To UBound(iMyArray)
+        tempArray(i) = iMyArray(i)
+    Next i
+ElseIf nbDim = 2 Then
+    For j = LBound(iMyArray, 2) To UBound(iMyArray, 2)
+        For i = LBound(iMyArray) To UBound(iMyArray)
+            If IsEmpty(iMyArray(i, columnToConvert)) Then
+                'isEmpty ou isNull?
+                tempArray(i) = 0
+            Else
+                tempArray(i) = iMyArray(i, columnToConvert)
+            End If
+        Next i
+    Next j
+End If
+getColumnDbl = tempArray    'Conversion
+End Property
+
+Property Get getColumnStr(Optional columnToConvert As Long = 0) As String()
+Dim tempArray() As String   'Conversion
+Dim i As Long, j As Long
+Dim nbDim As Integer
+nbDim = Me.dimension
+
+ReDim tempArray(Me.countRow)
+
+If nbDim = 1 Then
+    For i = LBound(iMyArray) To UBound(iMyArray)
+        If IsNull(iMyArray(i)) Then
+            tempArray(i) = "" 'ou Empty, c'est identique
+        Else
+            tempArray(i) = iMyArray(i)
+        End If
+    Next i
+ElseIf nbDim = 2 Then
+    For j = LBound(iMyArray, 2) To UBound(iMyArray, 2)
+        For i = LBound(iMyArray) To UBound(iMyArray)
+            If IsNull(iMyArray(i, columnToConvert)) Then
+                tempArray(i - LBound(iMyArray)) = ""
+            Else
+                tempArray(i - LBound(iMyArray)) = iMyArray(i, columnToConvert)
+            End If
+        Next i
+    Next j
+End If
+getColumnStr = tempArray    'Conversion
+End Property
+Property Get getColumnVar(Optional columnToConvert As Long = 0) As Variant()
+Dim tempArray() As Variant   'Conversion
+Dim i As Long, j As Long
+Dim nbDim As Integer
+nbDim = Me.dimension
+
+ReDim tempArray(Me.countRow)
+
+If nbDim = 1 Then
+    For i = LBound(iMyArray) To UBound(iMyArray)
+        tempArray(i) = iMyArray(i)
+    Next i
+ElseIf nbDim = 2 Then
+    For j = LBound(iMyArray, 2) To UBound(iMyArray, 2)
+        For i = LBound(iMyArray) To UBound(iMyArray)
+            tempArray(i) = iMyArray(i, columnToConvert)
+        Next i
+    Next j
+End If
+getColumnVar = tempArray    'Conversion
+End Property
+'Property getRows
+Property Get getRows(lineStart As Long, Optional lineEnd As Long) As ClassArray
+Dim nbDim As Integer
+Dim iTemp As Long
+Dim i As Long, j As Long, nbCol As Long
+Dim tempArray() As Variant
+Dim tempClassArray As New ClassArray
+nbDim = Me.dimension
+
+If lineEnd = 0 Then lineEnd = lineStart
+If lineStart > Me.myUbound Or lineStart < Me.myLbound Then
+    Debug.Print "[ClassArray/getRows] lineStart not included in myArray"
+    lineStart = Me.myLbound
+ElseIf lineEnd > Me.myUbound Or lineEnd < Me.myLbound Then
+    Debug.Print "[ClassArray/getRows] lineEnd not included in myArray"
+    lineEnd = Me.myUbound
+End If
+
+iTemp = 0
+If nbDim = 1 Then
+    ReDim tempArray(lineEnd - lineStart)
+    For i = lineStart To lineEnd
+        tempArray(iTemp) = iMyArray(i)
+        iTemp = iTemp + 1
+    Next i
+ElseIf nbDim = 2 Then
+    nbCol = Me.myUbound(2)
+    ReDim tempArray(lineEnd - lineStart, 0 To nbCol)
+    
+    For i = lineStart To lineEnd
+        For j = 0 To nbCol
+            tempArray(iTemp, j) = iMyArray(i, j)
+        Next j
+        iTemp = iTemp + 1
+    Next i
+End If
+
+tempClassArray.myArray = tempArray
+Set getRows = tempClassArray
+
+End Property
+'Porperty getValue
+Property Get getValue(row As Long, Optional column As Long = 0) As Variant
+Dim nbDim As Integer
+nbDim = Me.dimension
+
+If row > Me.countRow Then Exit Property
+If column > Me.countColumn Then Exit Property
+
+If nbDim = 1 Then
+    getValue = iMyArray(row)
+ElseIf nbDim = 2 Then
+    getValue = iMyArray(row, column)
+End If
+
+End Property
+'Property LBound
+Property Get myLbound(Optional dimension As Integer = 1) As Long
+    myLbound = LBound(iMyArray, dimension)
+End Property
+
+'Property UBound
+Property Get myUbound(Optional dimension As Integer = 1) As Long
+    myUbound = UBound(iMyArray, dimension)
+End Property
+
+'Property CountRow
+Property Get countRow() As Long
+    countRow = UBound(iMyArray, 1) - LBound(iMyArray, 1)
+    If countRow = 0 Then
+        If dimension = 1 Then
+            If iMyArray(0) = Empty Or IsNull(iMyArray(0)) Then
+                countRow = 0
+            Else
+                countRow = 1
+            End If
+        Else
+            If iMyArray(0, 0) = Empty Or IsNull(iMyArray(0, 0)) Then
+                countRow = 0
+            Else
+                countRow = 1
+            End If
+        End If
+    End If
+End Property
+
+'Property CountColumn
+Property Get countColumn() As Long
+    If Me.dimension = 1 Then
+        countColumn = 1
+    ElseIf Me.dimension = 2 Then
+        countColumn = UBound(iMyArray, 2) - LBound(iMyArray, 2)
+    Else
+        countColumn = 0
+    End If
+End Property
+
+'Property Dimension
+Property Get dimension() As Integer
+If iDimension = 0 Then
+    iDimension = GetDimensionsNumber(iMyArray)
+End If
+dimension = iDimension
+End Property
+
+'====================================================================================================
+'       Instantiate
+'====================================================================================================
+'Public Function InstantiateClassArray() As ClassArray
+'    InstantiateClassArray = New ClassArray
+'End Function
+
+
+'====================================================================================================
+'       General Function
+'====================================================================================================
+Private Function GetDimensionsNumber(anArray() As Variant) As Integer
+Dim i As Integer
+Dim j As Variant
+
+On Error Resume Next
+    Do
+        i = i + 1
+        j = LBound(anArray, i)
+    Loop Until Err <> 0
+On Error GoTo 0
+GetDimensionsNumber = i - 1
+End Function
+
+
+Public Function uniqueList(Optional columnToUnique As Long) As Variant()
+'-----------------------------------------------------------------
+'Entrée : tableau de valeur (iMyArray)
+'Sortie : tableau de valeur unique, non trié
+'tabEntree = 1,6,3,3,3,4,5,5,2,6
+'resultat = 1,6,3,4,5,2
+'-----------------------------------------------------------------
+
+Dim cellEnt As Variant
+Dim cellSor As Variant
+Dim exist As Boolean
+Dim nbDim As Integer
+
+Dim tabSortie() As Variant
+Dim nbValSortie As Long
+ReDim tabSortie(0)
+nbDim = Me.dimension
+nbValSortie = 0
+
+For cellEnt = LBound(iMyArray) To UBound(iMyArray)
+    'boucle sur le tableau d'entrée
+    exist = False
+    For cellSor = 0 To nbValSortie - 1
+        'boucle sur le tableau de sortie pour comparaison
+        If nbDim = 1 Then
+            If iMyArray(cellEnt) = tabSortie(cellSor) Then
+                exist = True
+                Exit For 'au premier trouvé, on sort de la boucle du tableau de sortie pour gagner du temps
+            ElseIf IsNull(iMyArray(cellEnt)) And IsNull(tabSortie(cellSor)) Then
+                exist = True
+                Exit For 'au premier trouvé, on sort de la boucle du tableau de sortie pour gagner du temps
+            End If
+        ElseIf nbDim = 2 Then
+            If iMyArray(cellEnt, columnToUnique) = tabSortie(cellSor) Then
+                exist = True
+                Exit For 'au premier trouvé, on sort de la boucle du tableau de sortie pour gagner du temps
+            ElseIf IsNull(iMyArray(cellEnt, columnToUnique)) And IsNull(tabSortie(cellSor)) Then
+                exist = True
+                Exit For 'au premier trouvé, on sort de la boucle du tableau de sortie pour gagner du temps
+            End If
+        End If
+    Next cellSor
+
+    'traitement résultat
+    If Not exist Then
+        ReDim Preserve tabSortie(nbValSortie) 'on ajoute 1 case au tableau de sortie
+        If nbDim = 1 Then
+            tabSortie(nbValSortie) = iMyArray(cellEnt) 'on rentre la valeur du tableauEntree dans le tableauSortie
+        ElseIf nbDim = 2 Then
+            tabSortie(nbValSortie) = iMyArray(cellEnt, columnToUnique)
+        End If
+        nbValSortie = nbValSortie + 1
+    End If
+Next cellEnt
+
+'ReDim Preserve tabSortie(UBound(tabSortie) - 1) 'on supprime la derniere case vide inutile
+
+uniqueList = tabSortie
+
+End Function
+
+'====================================================================================================
+'       Conversion Function
+'====================================================================================================
+Public Sub Convert(convertType As String, Optional columnToConvert As Long = 0)
+'Conversion Function
+'   Convert any column to convertType, leave other column safe
+'   Use after getColumnXXX to obtain formatted array
+Dim tempArray() As Variant
+Dim i As Long, j As Long
+Dim nbDim As Integer
+nbDim = Me.dimension
+
+If Len(convertType) > 0 Then
+    convertType = LCase(convertType)
+    If nbDim = 1 Then
+    '1 dimension array
+        ReDim tempArray(LBound(iMyArray) To UBound(iMyArray))
+        Select Case convertType
+        Case "string" Or "str"
+            For i = LBound(iMyArray) To UBound(iMyArray)
+                tempArray(i) = CStr(iMyArray(i))
+            Next i
+        Case "double" Or "dbl"
+            For i = LBound(iMyArray) To UBound(iMyArray)
+                tempArray(i) = CDbl(iMyArray(i))
+            Next i
+        Case "date" Or "dte"
+            For i = LBound(iMyArray) To UBound(iMyArray)
+                tempArray(i) = CDate(iMyArray(i))
+            Next i
+        Case Else 'default is variant
+            For i = LBound(iMyArray) To UBound(iMyArray)
+                tempArray(i) = CVar(iMyArray(i))
+            Next i
+
+        End Select
+    ElseIf nbDim = 2 Then
+    '2 dimensions array
+        ReDim tempArray(LBound(iMyArray) To UBound(iMyArray), LBound(iMyArray, 2) To UBound(iMyArray, 2))
+        Select Case convertType
+        Case "string", "str"
+            For j = LBound(iMyArray, 2) To UBound(iMyArray, 2)
+                If j = columnToConvert Then
+                    For i = LBound(iMyArray, 1) To UBound(iMyArray, 1)
+                        tempArray(i, j) = CStr(iMyArray(i, j))
+                    Next i
+                Else
+                    For i = LBound(iMyArray, 1) To UBound(iMyArray, 1)
+                        tempArray(i, j) = iMyArray(i, j)
+                    Next i
+                End If
+            Next j
+        Case "double", "dbl"
+            For j = LBound(iMyArray, 2) To UBound(iMyArray, 2)
+                If j = columnToConvert Then
+                    For i = LBound(iMyArray, 1) To UBound(iMyArray, 1)
+                        tempArray(i, j) = CDbl(iMyArray(i, j))
+                    Next i
+                Else
+                    For i = LBound(iMyArray, 1) To UBound(iMyArray, 1)
+                        tempArray(i, j) = iMyArray(i, j)
+                    Next i
+                End If
+            Next j
+        Case "date", "dte"
+            For j = LBound(iMyArray, 2) To UBound(iMyArray, 2)
+                If j = columnToConvert Then
+                    For i = LBound(iMyArray, 1) To UBound(iMyArray, 1)
+                        tempArray(i, j) = CDate(iMyArray(i, j))
+                    Next i
+                Else
+                    For i = LBound(iMyArray, 1) To UBound(iMyArray, 1)
+                        tempArray(i, j) = iMyArray(i, j)
+                    Next i
+                End If
+            Next j
+        Case Else
+            For j = LBound(iMyArray, 2) To UBound(iMyArray, 2)
+                If j = columnToConvert Then
+                    For i = LBound(iMyArray, 1) To UBound(iMyArray, 1)
+                        tempArray(i, j) = CVar(iMyArray(i, j))
+                    Next i
+                Else
+                    For i = LBound(iMyArray, 1) To UBound(iMyArray, 1)
+                        tempArray(i, j) = iMyArray(i, j)
+                    Next i
+                End If
+            Next j
+        End Select
+    ElseIf Me.dimension > 2 Then
+    '3&+ dimensions
+        'To do
+    End If
+    iMyArray = tempArray
+End If
+End Sub
+
+'====================================================================================================
+'       Manipulation Functions
+'====================================================================================================
+
+Function Sort(Optional SortColumn As Long = 0, _
+              Optional SortOrder As String = "xlAscending")
+    '=================================================
+    ' this function can sort 1 or 2 Dimension Array
+    ' use Bubble Sort
+    '           Parameter Info
+    '   SortColumn  :   on Which column you want to sort
+    ' SortOrder:        xlAscending , xlDescending
+    '=================================================
+Dim nbDim As Integer
+nbDim = Me.dimension
+
+If nbDim = 1 Then 'a tester avec nombre et string
+    Dim strTemp As Variant
+    Dim i As Long
+    Dim j As Long
+    Dim lngMin As Long
+    Dim lngMax As Long
+    lngMin = LBound(iMyArray)
+    lngMax = UBound(iMyArray)
+    
+    For i = lngMin To lngMax - 1
+        For j = i + 1 To lngMax
+            If iMyArray(i) > iMyArray(j) Then
+                strTemp = iMyArray(i)
+                iMyArray(i) = iMyArray(j)
+                iMyArray(j) = strTemp
+            End If
+        Next j
+    Next i
+
+ElseIf nbDim = 2 Then 'a tester avec nombre et string et Empty / string = plante
+
+    Dim intFirst As Long
+    Dim intLast As Long
+    Dim intFirstCol As Long
+    Dim intLastCol As Long
+    Dim sngTemp As Variant 'double?
+    Dim lngLoop1 As Long
+    Dim k As Long
+    Dim blnFlag As Boolean
+    Dim blnSort As Boolean
+    If Not IsArray(iMyArray) Then
+        blnFlag = True
+        GoTo ExitEarly:
+    End If
+    intFirst = LBound(iMyArray, 1)
+    intLast = UBound(iMyArray, 1)
+    intFirstCol = LBound(iMyArray, 2)
+    intLastCol = UBound(iMyArray, 2)
+    For i = intFirst To intLast - 1
+        For lngLoop1 = i + 1 To intLast
+            If SortOrder = "xlAscending" Then
+                If iMyArray(i, SortColumn) > iMyArray(lngLoop1, SortColumn) Then blnSort = True
+            Else
+                If iMyArray(i, SortColumn) < iMyArray(lngLoop1, SortColumn) Then blnSort = True
+            End If
+                If blnSort Then
+                    For k = intFirstCol To intLastCol
+                        sngTemp = iMyArray(lngLoop1, k)
+                        iMyArray(lngLoop1, k) = iMyArray(i, k)
+                        iMyArray(i, k) = sngTemp
+                    Next k
+                End If
+            blnSort = False
+        Next lngLoop1
+    Next i
+ExitEarly:
+    If blnFlag Then Sort = Null
+End If
+
+End Function
+
+
+Public Function Filter(operator As String, criteria As Variant, Optional SortByColumn As Long = 0) As Variant()
+
+'Filtre avancé d'array
+'Méthodes pour filtre complexe :
+'C1, C2 = colonne1, colonne2
+'1. si (C1 > 3)
+'   FiltreTab2Dnum(source,">",3)
+'2. si (C1>3 et C1<10)
+'   FiltreTab2Dnum(FiltreTab2Dnum(source,">",3),"<",10)
+'3. si (C1>2 et C3=4)
+'   FiltreTab2Dnum(ChangeColTab2D(FiltreTab2Dnum(source,">",2),3,1),"=",4)
+
+
+
+'===> à tester en string/vide
+
+Dim ligne As Long
+Dim test As Boolean
+
+'Dim outil As New Outils
+Dim multiTab As Boolean
+Dim ligneIndexTab As Long
+Dim ligneTempTab As Long
+Dim nbDim As Integer
+Dim debColiMyArray As Long
+Dim finColiMyArray As Long
+Dim debLigneiMyArray As Long
+Dim finLigneiMyArray As Long
+Dim colonneTab As Long
+Dim indexTab() As Long
+Dim tempTab()
+Dim valeur
+Dim nbLigneOK As Long
+
+nbDim = Me.dimension
+'test si iMyArray est multidimensionnel, dim 2 maxi
+If nbDim > 2 Then
+    Debug.Print "[Outils/FiltreTab2Dnum] Le tableau source contient plus de 2 dimensions"
+    Exit Function
+ElseIf nbDim = 1 Then
+    debLigneiMyArray = LBound(iMyArray)
+    finLigneiMyArray = UBound(iMyArray)
+    ReDim tempTab(finLigneiMyArray) 'Tab1D de ligne y
+    multiTab = False
+ElseIf nbDim = 2 Then
+    debLigneiMyArray = LBound(iMyArray, 1)
+    finLigneiMyArray = UBound(iMyArray, 1)
+    debColiMyArray = LBound(iMyArray, 2)
+    finColiMyArray = UBound(iMyArray, 2)
+    ReDim tempTab(finLigneiMyArray, finColiMyArray) 'Tab2D de colonne x et ligne y
+    multiTab = True
+End If
+
+ReDim indexTab(finLigneiMyArray)
+
+'boucle de test
+ligneIndexTab = 0
+nbLigneOK = 0
+For ligne = debLigneiMyArray To finLigneiMyArray
+    test = False
+    If multiTab Then 'si multi colonne
+        valeur = iMyArray(ligne, SortByColumn)
+    Else
+        valeur = iMyArray(ligne)
+    End If
+    
+    Select Case operator
+    Case "="
+        If valeur = criteria Then test = True
+        If IsNull(criteria) Then
+            If IsNull(valeur) Then test = True
+        End If
+    Case ">="
+        If valeur >= criteria Then test = True
+    Case "<="
+        If valeur <= criteria Then test = True
+    Case Is = ">"
+        If valeur > criteria Then test = True
+    Case "<"
+        If valeur < criteria Then test = True
+    Case "<>"
+        If valeur <> criteria Then test = True
+        If IsNull(criteria) Then
+            If Not IsNull(valeur) Then test = True
+        End If
+        If IsNull(valeur) Then
+            If Not IsNull(criteria) Then test = True
+        End If
+    End Select
+    
+    If test Then 'if criteria OK, add to indexTab
+        indexTab(ligne) = 1
+        nbLigneOK = nbLigneOK + 1
+    Else
+        indexTab(ligne) = 0
+    End If
+Next ligne
+
+If nbLigneOK > 0 Then
+    'Redim du tableau à la bonne taille si résultat
+    If nbDim = 2 Then
+        ReDim tempTab(nbLigneOK - 1, finColiMyArray) 'Tab2D de colonne x et ligne y
+    ElseIf nbDim = 1 Then
+        ReDim tempTab(nbLigneOK - 1) 'Tab1D de ligne y
+    End If
+    
+    'on rempli le tableau de résultat
+    ligneTempTab = 0
+    For ligne = debLigneiMyArray To finLigneiMyArray
+        If indexTab(ligne) = 1 Then
+            If multiTab Then
+                For colonneTab = debColiMyArray To finColiMyArray
+                    tempTab(ligneTempTab, colonneTab) = iMyArray(ligne, colonneTab)
+                Next colonneTab
+            Else
+                tempTab(ligneTempTab) = iMyArray(ligne)
+            End If
+            ligneTempTab = ligneTempTab + 1
+        End If
+    Next ligne
+Else
+    ReDim tempTab(0)
+    tempTab(0) = 0
+    Debug.Print "[ClassArray/Filter] Pas de résultat"
+End If
+
+Filter = tempTab
+
+End Function
+
+Sub Join(ByRef anArray())
+
+'myArray|an Array
+'A  B   |  C
+'3  4   |  3
+'2  6   |  9
+'4  7   |  0
+'8  2   |  1
+
+Dim mini As Long, maxi As Long
+Dim i As Long, j As Long
+Dim nbDimMyArray As Integer, nbDimAnArray As Integer
+Dim tempArray()
+Dim loRiMyArray As Long, hiRiMyArray As Long, loRAnArray As Long, hiRAnArray As Long
+Dim loCiMyArray As Long, hiCiMyArray As Long, loCAnArray As Long, hiCAnArray As Long
+
+nbDimMyArray = Me.dimension
+nbDimAnArray = GetDimensionsNumber(anArray)
+
+If UBound(anArray) > UBound(iMyArray) Then maxi = UBound(anArray) Else maxi = UBound(iMyArray)
+If LBound(anArray) < LBound(iMyArray) Then mini = LBound(anArray) Else mini = LBound(iMyArray)
+
+If nbDimMyArray = 1 Then
+    loRiMyArray = LBound(iMyArray)
+    hiRiMyArray = UBound(iMyArray)
+    loCiMyArray = 1
+    hiCiMyArray = 1
+ElseIf nbDimMyArray = 2 Then
+    loRiMyArray = LBound(iMyArray)
+    hiRiMyArray = UBound(iMyArray)
+    loCiMyArray = LBound(iMyArray, 2)
+    hiCiMyArray = UBound(iMyArray, 2)
+End If
+
+If nbDimAnArray = 1 Then
+    loRAnArray = LBound(anArray)
+    hiRAnArray = UBound(anArray)
+    loCAnArray = 1
+    hiCAnArray = 1
+ElseIf nbDimMyArray = 2 Then
+    loRAnArray = LBound(anArray)
+    hiRAnArray = UBound(anArray)
+    loCAnArray = LBound(anArray, 2)
+    hiCAnArray = UBound(anArray, 2)
+End If
+
+ReDim tempArray(mini To maxi, hiCiMyArray + hiCAnArray - 1)
+
+For i = mini To maxi 'loop on lines
+    'loop iMyArray column
+    If i >= loRiMyArray And i <= hiRiMyArray Then
+        If nbDimMyArray = 1 Then    'if MyArray is 1D
+            tempArray(i, 0) = iMyArray(i)
+        ElseIf nbDimMyArray = 2 Then
+            For j = 0 To hiCiMyArray
+                tempArray(i, j) = iMyArray(i, j)
+            Next j
+        End If
+    End If
+    'loop AnArray column
+    If i >= loRAnArray And i <= hiRAnArray Then
+        If nbDimAnArray = 1 Then    'if AnArray is 1D
+            tempArray(i, 1) = anArray(i)
+        ElseIf nbDimAnArray = 2 Then
+            For j = hiCiMyArray + 1 To hiCiMyArray + hiCAnArray - 1
+                tempArray(i, j) = anArray(i, j)
+            Next j
+        End If
+    End If
+Next i
+
+iDimension = 0 'reset dimension
+
+iMyArray = tempArray
+    
+End Sub
+
+
+Sub Transpose()
+Dim nbDim As Integer
+Dim i As Long, j As Long
+Dim tempArray()
+nbDim = Me.dimension
+
+ReDim tempArray(LBound(iMyArray, 2) To UBound(iMyArray, 2), LBound(iMyArray, 1) To UBound(iMyArray, 1))
+
+If nbDim = 1 Then
+    Exit Sub 'nothing to do
+ElseIf nbDim = 2 Then
+    For i = LBound(iMyArray, 1) To UBound(iMyArray, 1)
+        For j = LBound(iMyArray, 2) To UBound(iMyArray, 2)
+            tempArray(j, i) = iMyArray(i, j)
+        Next j
+    Next i
+End If
+
+iMyArray = tempArray
+
+End Sub
+
+Sub Add(ByRef anArray())
+
+'myArray            myArray
+'A  B               'A  B
+'3  7               '3  7
+'T  2       ==>     'T  2
+'an Array           '4  7
+'4  7               '8  6
+'8  6
+
+Dim ligne As Long
+Dim colonne As Long
+Dim nbDimMyArray As Long
+Dim nbDimAnArray As Long
+Dim tempArray()
+
+nbDimMyArray = Me.dimension 'need Me to force refresh
+nbDimAnArray = GetDimensionsNumber(anArray)
+
+If nbDimMyArray = nbDimAnArray Then
+    If UBound(iMyArray, nbDimMyArray) = UBound(anArray, nbDimAnArray) Then
+        If nbDimMyArray = 1 Then
+            ReDim tempArray(UBound(iMyArray) + UBound(anArray))
+            For ligne = LBound(iMyArray) To UBound(iMyArray)
+                tempArray(ligne) = iMyArray(ligne)
+            Next ligne
+            For ligne = LBound(anArray) To UBound(anArray)
+                tempArray(ligne + UBound(iMyArray)) = anArray(ligne)
+            Next ligne
+            iMyArray = tempArray
+        ElseIf nbDimMyArray = 2 Then
+        ReDim tempArray(UBound(iMyArray) + UBound(anArray), UBound(iMyArray, 2))
+            For colonne = LBound(iMyArray, 2) To UBound(iMyArray, 2)
+                For ligne = LBound(iMyArray) To UBound(iMyArray)
+                    tempArray(ligne, colonne) = iMyArray(ligne, colonne)
+                Next ligne
+                For ligne = LBound(anArray) To UBound(anArray)
+                    tempArray(ligne + UBound(iMyArray), colonne) = anArray(ligne, colonne)
+                Next ligne
+            Next colonne
+            iMyArray = tempArray
+        Else
+            Debug.Print "[ClassArray/Add] Les tableaux 3D et plus ne sont pas pris en charge"
+        End If
+    Else
+        Debug.Print "[ClassArray/Add] Les tableaux doivent avoir le même nombre de colonne"
+    End If
+Else
+    Debug.Print "[ClassArray/Add] Les tableaux doivent avoir la même dimension"
+End If
+
+End Sub
+
